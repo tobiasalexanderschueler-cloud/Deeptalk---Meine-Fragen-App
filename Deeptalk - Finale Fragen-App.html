@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interaktiver Fragenkatalog</title>
+    <!-- Lade Tailwind CSS für responsives und modernes Styling -->
+
+    <!-- ABSCHNITT FÜR APP-START AUF MOBILGERÄTEN (PWA) -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Fragen App">
+    <meta name="theme-color" content="#ff5722"> 
+    <!-- Icon-Platzhalter (verwendet die Akzentfarbe) -->
+    <link rel="apple-touch-icon" href="https://placehold.co/180x180/ff5722/ffffff?text=Q"> 
+    <link rel="icon" href="https://placehold.co/32x32/ff5722/ffffff?text=Q">
+
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* CSS-Variablen für Farbanpassung */
+        :root {
+            --font-inter: 'Inter', sans-serif;
+            --color-primary: #ff5722; /* Standard-Akzentfarbe (Koralle) */
+            --color-secondary: #ff8a65;
+            --color-text-dark: #1f2937;
+            --color-text-light: #f3ffef; /* Helleres Weiß */
+            --color-bg-dark: #111827;
+            --color-bg-light: #ffffff;
+            --color-card-dark: #1f2937;
+            --color-card-light: #f3f4f6;
+            --color-shadow-light: rgba(0, 0, 0, 0.1);
+            --color-shadow-dark: rgba(0, 0, 0, 0.2);
+            --color-primary-rgb: 255, 87, 34; /* RGB-Fallback für Schatten */
+        }
+
+        body {
+            font-family: var(--font-inter);
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        /* Dark Mode */
+        .dark {
+            background-color: var(--color-bg-dark);
+            color: var(--color-text-light);
+        }
+
+        .dark .card, .dark .input-field {
+            background-color: var(--color-card-dark);
+            border-color: #374151;
+            box-shadow: 0 4px 6px -1px var(--color-shadow-dark), 0 2px 4px -2px rgba(0, 0, 0, 0.15);
+        }
+        
+        /* Light Mode */
+        .light {
+            background-color: var(--color-bg-light);
+            color: var(--color-text-dark);
+        }
+
+        .light .card, .light .input-field {
+            background-color: var(--color-card-light);
+            border-color: #e5e7eb;
+            box-shadow: 0 4px 6px -1px var(--color-shadow-light), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
+        }
+
+        /* Allgemeine Button-Styles */
+        .category-button, .action-button, .mode-button, .reset-button {
+            padding: 0.75rem 1.25rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            border: 2px solid transparent;
+            min-width: 100px;
+        }
+
+        /* Kategorie-Button (Standard/Inaktiv) */
+        .category-button {
+            border-color: var(--color-primary);
+            color: var(--color-primary);
+            background-color: transparent;
+        }
+
+        /* Kategorie-Button (Aktiv) - Wichtig: Hintergrund und Textfarbe werden überschrieben */
+        .category-button.active {
+            background-color: var(--color-primary) !important;
+            color: var(--color-bg-light) !important;
+            border-color: var(--color-primary);
+            box-shadow: 0 4px 6px -1px rgba(var(--color-primary-rgb), 0.4); /* Dynamischer Schatten */
+        }
+
+        /* Aktions-Button (Haupt-Aktion) */
+        .action-button {
+            background-color: var(--color-primary);
+            color: var(--color-bg-light);
+            box-shadow: 0 4px 6px -1px rgba(var(--color-primary-rgb), 0.5);
+        }
+        .action-button:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        /* Reset Button Style */
+        .reset-button {
+            background-color: #ef4444; /* Rot */
+            color: #ffffff;
+            box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.5);
+        }
+        
+        /* Einstellungen-Icon-Button */
+        .settings-button {
+            background-color: transparent;
+            border: none;
+            padding: 0.5rem;
+            border-radius: 50%;
+            transition: background-color 0.2s;
+            /* Farbe des SVG-Inhalts anpassen */
+            fill: var(--color-text-dark); 
+        }
+        .dark .settings-button {
+            fill: var(--color-text-light);
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        .settings-button:hover {
+            background-color: rgba(0, 0, 0, 0.1);
+        }
+        .dark .settings-button:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+
+        /* Textarea/Input Styling */
+        .input-field {
+            padding: 1rem;
+            border-width: 2px;
+            border-radius: 0.5rem;
+            width: 100%;
+            transition: border-color 0.2s;
+            resize: none;
+            min-height: 200px;
+        }
+        .light .input-field { color: var(--color-text-dark); }
+        .dark .input-field { color: var(--color-text-light); }
+
+        /* Anpassung für mobile Ansicht */
+        @media (max-width: 640px) {
+            .category-button {
+                padding: 0.5rem 0.75rem;
+                font-size: 0.875rem;
+                min-width: unset;
+            }
+        }
+    </style>
+    <script>
+        // *** GLOBALE ZUSTANDSVERWALTUNG ***
+
+        // Standard-Farbwerte
+        const DEFAULT_COLORS = {
+            primaryColor: '#ff5722',
+            bgColorLight: '#ffffff',
+            cardColorLight: '#f3f4f6'
+        };
+
+        // Initialer Katalog mit Beispielfragen
+        const defaultTextData = `
+[Paare: Kennenlern-Fragen]
+Was war dein peinlichster Moment, den du trotzdem magst?
+Was ist dein größter Traum, den wir zusammen erreichen könnten?
+Welche Gewohnheit von mir nervt dich am wenigsten?
+
+[Freundschaft: Tiefe Gespräche]
+Was schätzt du an dir selbst am meisten?
+Wenn du eine Sache in der Welt ändern könntest, welche wäre es?
+Was ist eine Lektion, die du in der Schule gelernt hast, die wirklich nützlich war?
+
+[Philosophie & Gesellschaft]
+Ist es besser, glücklich oder weise zu sein?
+Wie viel Kontrolle haben wir wirklich über unser eigenes Schicksal?
+Wenn alle Erinnerungen an dich verschwinden würden, was würde dann von dir bleiben?
+`;
+        
+        let allQuestions = [];
+        let availableCategories = [];
+        let activeCategories = [];
+        let currentQuestionIndex = 0;
+        let shuffledPool = [];
+
+        const STATE = {
+            theme: 'light', // 'light' oder 'dark'
+            mode: 'random'  // 'random' oder 'strict'
+        };
+
+        // *** FARBFUNKTIONEN ***
+        
+        /** Konvertiert Hex zu RGB-String (z.B. "255, 87, 34") für CSS-Variablen. */
+        function hexToRgb(hex) {
+            const shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
+            hex = hex.replace(shorthandRegex, function(m, r, g, b) {
+                return r + r + g + g + b + b;
+            });
+
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : '255, 87, 34'; // Fallback
+        }
+
+        /** Aktualisiert die CSS-Variablen mit den Werten aus den Color-Pickern. */
+        function updateColorVariables() {
+            // Lese Werte aus den Color-Pickern 
+            const primaryColor = document.getElementById('primaryColorPicker').value || DEFAULT_COLORS.primaryColor;
+            const bgColorLight = document.getElementById('bgColorLightPicker').value || DEFAULT_COLORS.bgColorLight;
+            const cardColorLight = document.getElementById('cardColorLightPicker').value || DEFAULT_COLORS.cardColorLight;
+            
+            // Setze die Hauptfarbe und ihren RGB-Wert für den Schatten
+            document.documentElement.style.setProperty('--color-primary', primaryColor);
+            document.documentElement.style.setProperty('--color-primary-rgb', hexToRgb(primaryColor));
+            
+            // Setze die Light-Mode Farben
+            document.documentElement.style.setProperty('--color-bg-light', bgColorLight);
+            document.documentElement.style.setProperty('--color-card-light', cardColorLight);
+            
+            // Wende das aktuelle Theme erneut an, um sofortige Updates zu erzwingen
+            document.body.className = STATE.theme;
+        }
+
+        /** Setzt die Color-Picker auf die Standardwerte zurück. */
+        function resetColorPickersToDefaults() {
+            document.getElementById('primaryColorPicker').value = DEFAULT_COLORS.primaryColor;
+            document.getElementById('bgColorLightPicker').value = DEFAULT_COLORS.bgColorLight;
+            document.getElementById('cardColorLightPicker').value = DEFAULT_COLORS.cardColorLight;
+            updateColorVariables(); // Aktualisiert auch die CSS-Variablen sofort
+        }
+
+        // *** FUNKTIONEN ZUR DAUERHAFTEN SPEICHERUNG (localStorage) ***
+        
+        const STORAGE_KEY = 'quizApp_data';
+
+        function saveData() {
+            const dataToSave = {
+                questions: allQuestions,
+                settings: {
+                    theme: STATE.theme,
+                    primaryColor: document.getElementById('primaryColorPicker').value,
+                    bgColorLight: document.getElementById('bgColorLightPicker').value,
+                    cardColorLight: document.getElementById('cardColorLightPicker').value,
+                    mode: STATE.mode,
+                    categories: activeCategories 
+                }
+            };
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
+                console.log("Daten erfolgreich gespeichert.");
+            } catch (e) {
+                console.error("Fehler beim Speichern der Daten:", e);
+            }
+        }
+
+        function loadData() {
+            try {
+                const savedData = localStorage.getItem(STORAGE_KEY);
+                if (savedData) {
+                    const data = JSON.parse(savedData);
+                    
+                    // Lade Fragen
+                    allQuestions = data.questions || [];
+                    
+                    // Lade Einstellungen
+                    if (data.settings) {
+                        STATE.theme = data.settings.theme || 'light';
+                        STATE.mode = data.settings.mode || 'random';
+                        
+                        // Setze Color-Picker-Werte mit geladenen Werten, nutze Defaults als Fallback
+                        document.getElementById('primaryColorPicker').value = data.settings.primaryColor || DEFAULT_COLORS.primaryColor;
+                        document.getElementById('bgColorLightPicker').value = data.settings.bgColorLight || DEFAULT_COLORS.bgColorLight;
+                        document.getElementById('cardColorLightPicker').value = data.settings.cardColorLight || DEFAULT_COLORS.cardColorLight;
+                        
+                        // Wende die geladenen Farben an (aktualisiert CSS-Variablen und Theme-Klasse)
+                        updateColorVariables();
+
+                        // Lade aktive Kategorien (wichtig für die UI-Wiederherstellung)
+                        activeCategories = data.settings.categories || [];
+                    }
+                    console.log("Daten erfolgreich geladen.");
+                    return allQuestions.length > 0; // Rückgabe, ob Fragen geladen wurden
+                }
+            } catch (e) {
+                console.error("Fehler beim Laden der Daten:", e);
+            }
+            return false;
+        }
+
+        /**
+         * Setzt nur die Farbspeicherung zurück, behält aber Fragen und Modus bei.
+         * Wird über den neuen Button im Editor ausgelöst.
+         */
+        function resetColorSettings() {
+            // Setze Color-Picker auf die Standardwerte
+            resetColorPickersToDefaults();
+            
+            // Überschreibe die Farbspeicherwerte in localStorage mit den Defaults
+            let data = {};
+            try {
+                const savedData = localStorage.getItem(STORAGE_KEY);
+                if (savedData) {
+                    data = JSON.parse(savedData);
+                }
+            } catch (e) {
+                console.error("Konnte gespeicherte Daten nicht lesen, um Farben zurückzusetzen.", e);
+            }
+
+            // Setze Farbfelder auf Defaults zurück
+            if (data.settings) {
+                data.settings.primaryColor = DEFAULT_COLORS.primaryColor;
+                data.settings.bgColorLight = DEFAULT_COLORS.bgColorLight;
+                data.settings.cardColorLight = DEFAULT_COLORS.cardColorLight;
+            } else {
+                // Wenn es keine Settings gibt, erstelle sie neu mit Defaults
+                data.settings = {
+                    theme: STATE.theme,
+                    mode: STATE.mode,
+                    categories: activeCategories,
+                    ...DEFAULT_COLORS // Füge alle Default-Farben hinzu
+                };
+            }
+            
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+                console.log("Farbdaten erfolgreich zurückgesetzt und gespeichert.");
+            } catch(e) {
+                console.error("Fehler beim Speichern der zurückgesetzten Farbdaten.", e);
+            }
+            
+            // Wende die Änderungen an und bleibe im Editor
+            updateColorVariables();
+            updateSettingsDisplay(); 
+            alertMessage('Die Farben wurden auf die Standardwerte zurückgesetzt. Ihre Fragen sind erhalten geblieben.');
+        }
+
+        /** Zeigt eine temporäre Meldung anstelle von alert() an. */
+        function alertMessage(text) {
+            const container = document.getElementById('app');
+            const message = document.createElement('div');
+            message.textContent = text;
+            message.className = 'fixed top-0 left-1/2 transform -translate-x-1/2 mt-4 bg-green-500 text-white p-3 rounded-lg shadow-xl z-50 transition-opacity duration-300';
+            container.appendChild(message);
+            
+            setTimeout(() => {
+                message.style.opacity = '0';
+                message.addEventListener('transitionend', () => message.remove());
+            }, 3000);
+        }
+
+        // *** FUNKTIONEN ZUR FRAGENVERWALTUNG ***
+
+        /**
+         * Parst den rohen Text aus der Textarea in das allQuestions Array.
+         * @param {string} rawText - Der Text mit [Kategorie]-Überschriften und Fragen.
+         */
+        function parseQuestions(rawText) {
+            allQuestions = [];
+            availableCategories = [];
+            let currentCategory = 'Unkategorisiert';
+            const lines = rawText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+
+            lines.forEach(line => {
+                if (line.startsWith('[') && line.endsWith(']')) {
+                    // Neue Kategorie erkannt
+                    currentCategory = line.substring(1, line.length - 1).trim();
+                    if (currentCategory && !availableCategories.includes(currentCategory)) {
+                        availableCategories.push(currentCategory);
+                    }
+                } else if (line) {
+                    // Eine Frage zur aktuellen Kategorie hinzufügen
+                    allQuestions.push({
+                        category: currentCategory,
+                        question: line
+                    });
+                }
+            });
+
+            // Sicherstellen, dass die aktiven Kategorien gültig bleiben
+            activeCategories = activeCategories.filter(cat => availableCategories.includes(cat));
+            if (activeCategories.length === 0 && availableCategories.length > 0) {
+                activeCategories = [...availableCategories]; // Wähle standardmäßig alle aus
+            }
+
+            // Nach dem Parsen muss die UI aktualisiert werden
+            renderCategoryButtons();
+            updateSettingsDisplay();
+        }
+
+        /**
+         * Fisher-Yates Shuffle Algorithmus
+         * @param {Array} array - Das zu mischende Array.
+         */
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        /**
+         * Erstellt den Pool für den strengen Zyklus und mischt ihn.
+         */
+        function createShuffledPool() {
+            const currentPool = allQuestions.filter(q => activeCategories.includes(q.category));
+            shuffledPool = shuffleArray([...currentPool]); // Erstelle eine gemischte Kopie
+            currentQuestionIndex = 0;
+        }
+
+        /**
+         * Wählt die nächste Frage basierend auf dem aktiven Spielmodus aus.
+         */
+        function getNextQuestion() {
+            const filteredQuestions = allQuestions.filter(q => activeCategories.includes(q.category));
+
+            if (filteredQuestions.length === 0) {
+                return { question: 'Bitte wähle mindestens eine Kategorie aus, um Fragen zu erhalten.', category: 'Fehler' };
+            }
+
+            if (STATE.mode === 'random') {
+                // Modus "Zufällig": Echte Zufallsauswahl
+                const randomIndex = Math.floor(Math.random() * filteredQuestions.length);
+                return filteredQuestions[randomIndex];
+            } else {
+                // Modus "Strenger Zyklus": Nacheinander abarbeiten
+                if (shuffledPool.length === 0 || shuffledPool.length !== filteredQuestions.length) {
+                    // Pool neu erstellen, wenn er leer ist oder die Kategorien sich geändert haben
+                    createShuffledPool();
+                }
+
+                if (currentQuestionIndex >= shuffledPool.length) {
+                    // Zyklus beendet, neu starten
+                    createShuffledPool();
+                }
+
+                const questionObj = shuffledPool[currentQuestionIndex];
+                currentQuestionIndex++;
+                return questionObj;
+            }
+        }
+
+        /**
+         * Rendert die Kategorie-Buttons und deren aktiven Zustand.
+         */
+        function renderCategoryButtons() {
+            const container = document.getElementById('categoryButtons');
+            container.innerHTML = '';
+
+            // 1. "Alle" Button hinzufügen
+            const allButton = document.createElement('button');
+            allButton.textContent = 'Alle Kategorien';
+            allButton.className = `category-button transition-colors ${activeCategories.length === availableCategories.length && availableCategories.length > 0 ? 'active' : ''}`;
+            allButton.onclick = () => toggleAllCategories();
+            container.appendChild(allButton);
+
+            // 2. Einzelne Kategorie-Buttons hinzufügen
+            availableCategories.forEach(category => {
+                const button = document.createElement('button');
+                button.textContent = category.split(':')[0];
+                button.className = `category-button transition-colors ${activeCategories.includes(category) ? 'active' : ''}`;
+                button.onclick = () => toggleCategory(category);
+                container.appendChild(button);
+            });
+            updateNextQuestionButton();
+            saveData(); // Speichern, falls Kategorieauswahl geändert wurde
+        }
+
+        /**
+         * Schaltet eine Kategorie aktiv/inaktiv.
+         * @param {string} category - Der Kategoriename.
+         */
+        function toggleCategory(category) {
+            const index = activeCategories.indexOf(category);
+            if (index > -1) {
+                activeCategories.splice(index, 1);
+            } else {
+                activeCategories.push(category);
+            }
+            // Beim Ändern der Kategorien, Pool für strengen Zyklus zurücksetzen
+            shuffledPool = [];
+            currentQuestionIndex = 0;
+            renderCategoryButtons();
+        }
+
+        /**
+         * Schaltet alle Kategorien gleichzeitig an oder aus.
+         */
+        function toggleAllCategories() {
+            if (activeCategories.length === availableCategories.length) {
+                activeCategories = [];
+            } else {
+                activeCategories = [...availableCategories];
+            }
+            shuffledPool = [];
+            currentQuestionIndex = 0;
+            renderCategoryButtons();
+        }
+
+        /**
+         * Zeigt die nächste Frage im UI an.
+         */
+        function showNextQuestion() {
+            const result = getNextQuestion();
+            const questionDisplay = document.getElementById('questionDisplay');
+            const categoryLabel = document.getElementById('currentCategory');
+
+            questionDisplay.textContent = result.question;
+            categoryLabel.textContent = result.category;
+
+            if (STATE.mode === 'random') {
+                createShuffledPool();
+            }
+
+            updateNextQuestionButton();
+        }
+
+        /**
+         * Aktualisiert den Text des "Nächste Frage"-Buttons.
+         */
+        function updateNextQuestionButton() {
+            const nextButton = document.getElementById('nextQuestionButton');
+            const filteredCount = allQuestions.filter(q => activeCategories.includes(q.category)).length;
+
+            if (filteredCount === 0) {
+                nextButton.textContent = 'Wähle Kategorien';
+                nextButton.disabled = true;
+                return;
+            }
+
+            nextButton.disabled = false;
+
+            if (STATE.mode === 'strict') {
+                // Stelle sicher, dass der Pool initialisiert ist
+                if (shuffledPool.length === 0 || shuffledPool.length !== filteredCount) {
+                     createShuffledPool();
+                }
+
+                let remaining = shuffledPool.length - currentQuestionIndex;
+                
+                // Wenn der Zyklus durch ist, Pool neu mischen und den vollen Count anzeigen
+                if (remaining <= 0) {
+                    createShuffledPool();
+                    remaining = shuffledPool.length;
+                    currentQuestionIndex = 0; // Index 0 wird im nächsten Klick angezeigt
+                    
+                    // Zeige die erste Frage der neuen Runde an
+                    if (shuffledPool.length > 0) {
+                         document.getElementById('questionDisplay').textContent = shuffledPool[0].question;
+                         document.getElementById('currentCategory').textContent = shuffledPool[0].category;
+                         currentQuestionIndex = 1; 
+                         remaining = shuffledPool.length - 1;
+                    }
+                }
+
+                nextButton.textContent = `Nächste Frage (${remaining} übrig)`;
+
+            } else {
+                nextButton.textContent = 'Nächste zufällige Frage';
+            }
+        }
+
+        /**
+         * Schaltet zwischen hellem und dunklem Modus um.
+         */
+        function toggleTheme() {
+            STATE.theme = STATE.theme === 'light' ? 'dark' : 'light';
+            document.body.className = STATE.theme;
+            saveData(); // Speichern, da das Theme geändert wurde
+            updateSettingsDisplay();
+        }
+
+        /**
+         * Schaltet den Spielmodus um.
+         */
+        function toggleMode() {
+            STATE.mode = STATE.mode === 'random' ? 'strict' : 'random';
+            createShuffledPool(); // Pool muss bei Moduswechsel neu erstellt werden
+            saveData(); // Speichern, da der Modus geändert wurde
+            updateSettingsDisplay();
+            updateNextQuestionButton();
+        }
+
+        /**
+         * Aktualisiert die Anzeige der Einstellungen (Modus und Thema-Button-Text).
+         */
+        function updateSettingsDisplay() {
+            const modeButton = document.getElementById('modeButton');
+            const themeButton = document.getElementById('themeButton');
+
+            modeButton.textContent = STATE.mode === 'random' ? 'Spielmodus: Zufällig' : 'Spielmodus: Strenger Zyklus';
+            themeButton.textContent = STATE.theme === 'light' ? 'Thema: Hell' : 'Thema: Dunkel';
+        }
+
+        /**
+         * Speichert die Daten, aktualisiert die Fragen und kehrt zur Spielansicht zurück.
+         */
+        function loadAndUpdateData() {
+            const textarea = document.getElementById('questionInput');
+            parseQuestions(textarea.value);
+            
+            // Speichere die aktualisierten Fragen und Einstellungen dauerhaft
+            saveData();
+            
+            showNextQuestion();
+            // Blende den Editor aus und die Spiel-UI ein
+            document.getElementById('editorContainer').classList.add('hidden');
+            document.getElementById('gameContainer').classList.remove('hidden');
+        }
+
+        /**
+         * Zeigt den Editor mit allen Einstellungen an.
+         */
+        function showEditor() {
+            // Der Editor muss den gesamten Text neu aus den strukturierten Daten generieren (mit den [Kategorien])
+            let editorContent = "";
+            let currentCategory = null;
+            allQuestions.forEach(q => {
+                if (q.category !== currentCategory) {
+                    if (q.category) { // Vermeide leere Kategorie-Überschriften
+                        editorContent += `\n[${q.category}]\n`;
+                    }
+                    currentCategory = q.category;
+                }
+                editorContent += `${q.question}\n`;
+            });
+            
+            document.getElementById('questionInput').value = editorContent.trim();
+
+
+            document.getElementById('editorContainer').classList.remove('hidden');
+            document.getElementById('gameContainer').classList.add('hidden');
+        }
+        
+        /**
+         * NEUE HILFSFUNKTION: Rekonstruiert die Kategorien aus den geladenen Daten 
+         * und rendert die Buttons (Fix für das initiale Laden).
+         */
+        function setupAfterLoad() {
+            availableCategories = [];
+            // Fülle availableCategories basierend auf den geladenen Fragen
+            allQuestions.forEach(q => {
+                if (q.category && !availableCategories.includes(q.category)) {
+                    availableCategories.push(q.category);
+                }
+            });
+
+            // Stelle sicher, dass die aktiven Kategorien gültig bleiben
+            activeCategories = activeCategories.filter(cat => availableCategories.includes(cat));
+            if (activeCategories.length === 0 && availableCategories.length > 0) {
+                activeCategories = [...availableCategories];
+            }
+
+            renderCategoryButtons();
+            updateSettingsDisplay();
+        }
+
+        /**
+         * Haupt-Initialisierungsfunktion.
+         */
+        function initializeApp() {
+            try {
+                // 1. Initialisiere Color-Picker mit Standard-CSS-Werten (sauberer Startpunkt)
+                resetColorPickersToDefaults();
+
+                // 2. Lade gespeicherte Daten (überschreibt STATE und Picker-Werte, ruft updateColorVariables() bei Erfolg)
+                const dataLoaded = loadData(); 
+
+                // 3. Setze das Theme und die Farben final (wird durch loadData oder Standard gesetzt)
+                document.body.className = STATE.theme;
+                
+                if (!dataLoaded) {
+                    // 4. Wenn keine gespeicherten Daten gefunden, lade Standardfragen und PARSE SIE
+                    const textarea = document.getElementById('questionInput');
+                    textarea.value = defaultTextData.trim();
+                    // parseQuestions erledigt die Initialisierung von allQuestions, availableCategories und ruft renderCategoryButtons
+                    parseQuestions(textarea.value); 
+                } else {
+                    // WICHTIGER FIX: Wenn Daten geladen sind (allQuestions gefüllt), 
+                    // müssen wir verfügbare Kategorien rekonstruieren und die Buttons rendern.
+                    setupAfterLoad();
+                }
+                
+                // Final steps
+                createShuffledPool();
+                showNextQuestion();
+
+                // Starte in der Spielansicht
+                document.getElementById('editorContainer').classList.add('hidden');
+                document.getElementById('gameContainer').classList.remove('hidden');
+
+            } catch(e) {
+                console.error("Fehler beim Initialisieren der App:", e);
+                // Zeigt einen Fehler an, falls etwas schief geht
+                document.getElementById('app').innerHTML = `<p class="text-xl text-red-500 p-8">FATALER FEHLER: App konnte nicht gestartet werden. Prüfe die Konsole. ${e.message}</p>`;
+            }
+        }
+
+        // Starte die App, sobald das gesamte HTML geladen ist
+        document.addEventListener('DOMContentLoaded', initializeApp);
+
+    </script>
+</head>
+<body>
+
+    <div id="app" class="max-w-3xl mx-auto p-4 sm:p-6 min-h-screen">
+        
+        <!-- HEADER MIT TITEL UND EINSTELLUNGEN -->
+        <header class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl sm:text-3xl font-extrabold" style="color: var(--color-primary);">
+                Der Fragenkatalog
+            </h1>
+            
+            <!-- EINSTELLUNGEN-BUTTON (Zahnrad-Symbol als SVG) -->
+            <button onclick="showEditor()" class="settings-button">
+             <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="40" height="40" viewBox="0 0 50 50">
+    <path d="M47.16,21.221l-5.91-0.966c-0.346-1.186-0.819-2.326-1.411-3.405l3.45-4.917c0.279-0.397,0.231-0.938-0.112-1.282 l-3.889-3.887c-0.347-0.346-0.893-0.391-1.291-0.104l-4.843,3.481c-1.089-0.602-2.239-1.08-3.432-1.427l-1.031-5.886 C28.607,2.35,28.192,2,27.706,2h-5.5c-0.49,0-0.908,0.355-0.987,0.839l-0.956,5.854c-1.2,0.345-2.352,0.818-3.437,1.412l-4.83-3.45 c-0.399-0.285-0.942-0.239-1.289,0.106L6.82,10.648c-0.343,0.343-0.391,0.883-0.112,1.28l3.399,4.863 c-0.605,1.095-1.087,2.254-1.438,3.46l-5.831,0.971c-0.482,0.08-0.836,0.498-0.836,0.986v5.5c0,0.485,0.348,0.9,0.825,0.985 l5.831,1.034c0.349,1.203,0.831,2.362,1.438,3.46l-3.441,4.813c-0.284,0.397-0.239,0.942,0.106,1.289l3.888,3.891 c0.343,0.343,0.884,0.391,1.281,0.112l4.87-3.411c1.093,0.601,2.248,1.078,3.445,1.424l0.976,5.861C21.3,47.647,21.717,48,22.206,48 h5.5c0.485,0,0.9-0.348,0.984-0.825l1.045-5.89c1.199-0.353,2.348-0.833,3.43-1.435l4.905,3.441 c0.398,0.281,0.938,0.232,1.282-0.111l3.888-3.891c0.346-0.347,0.391-0.894,0.104-1.292l-3.498-4.857 c0.593-1.08,1.064-2.222,1.407-3.408l5.918-1.039c0.479-0.084,0.827-0.5,0.827-0.985v-5.5C47.999,21.718,47.644,21.3,47.16,21.221z M25,32c-3.866,0-7-3.134-7-7c0-3.866,3.134-7,7-7s7,3.134,7,7C32,28.866,28.866,32,25,32z"></path>
+</svg>
+            </button>
+        </header>
+
+        <!-- *** SPIEL-UI (Kategorien, Frage, Hauptelemente) *** -->
+        <div id="gameContainer">
+            
+            <!-- KATEGORIE-AUSWAHL -->
+            <div class="card p-4 sm:p-6 rounded-xl mb-6">
+                <h3 class="text-xl font-semibold mb-3">Wähle Kategorien (Mehrfachauswahl möglich):</h3>
+                <div id="categoryButtons" class="flex flex-wrap gap-3">
+                    <!-- Kategorie-Buttons werden hier von JavaScript gerendert -->
+                </div>
+            </div>
+
+            <!-- FRAGE-ANZEIGE -->
+            <div class="card p-8 sm:p-10 rounded-xl mb-6 text-center min-h-[150px] flex flex-col justify-center">
+                <p id="currentCategory" class="text-sm font-medium opacity-60 mb-2"></p>
+                <p id="questionDisplay" class="text-xl sm:text-3xl font-bold italic leading-relaxed">
+                    Klicke auf "Nächste Frage", um zu starten.
+                </p>
+            </div>
+
+            <!-- AKTION-BUTTON -->
+            <div class="flex justify-center">
+                <button id="nextQuestionButton" onclick="showNextQuestion()" class="action-button text-lg w-full sm:w-auto">
+                    Nächste Frage
+                </button>
+            </div>
+
+        </div>
+
+        <!-- *** EINSTELLUNGEN UND EDITOR (Versteckt hinter dem Zahnrad) *** -->
+        <div id="editorContainer" class="hidden my-8">
+            <div class="card p-6 sm:p-8 rounded-xl transition-all duration-300">
+                <h2 class="text-2xl font-bold mb-6" style="color: var(--color-primary);">Einstellungen & Datenpflege</h2>
+
+                <!-- TEMA UND MODUS -->
+                <h3 class="text-xl font-semibold mb-3">Thema & Modus</h3>
+                <div class="flex flex-wrap gap-3 mb-6">
+                    <button id="themeButton" onclick="toggleTheme()" class="mode-button bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border-none"></button>
+                    <button id="modeButton" onclick="toggleMode()" class="mode-button bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border-none"></button>
+                </div>
+                
+                <!-- FARBANPASSUNG -->
+                <h3 class="text-xl font-semibold mb-3">Farbanpassung (Light-Mode)</h3>
+                <p class="mb-4 text-sm opacity-80">Falls die Farben auf einem Gerät kaputt sind, nutzen Sie den Reset-Button unten.</p>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                    <div class="flex flex-col">
+                        <label for="primaryColorPicker" class="text-sm font-medium mb-1">Akzentfarbe (Buttons/Text)</label>
+                        <input type="color" id="primaryColorPicker" oninput="updateColorVariables(); saveData();" class="h-10 border-2 rounded-lg cursor-pointer">
+                    </div>
+                    <div class="flex flex-col">
+                        <label for="bgColorLightPicker" class="text-sm font-medium mb-1">Hintergrundfarbe</label>
+                        <input type="color" id="bgColorLightPicker" oninput="updateColorVariables(); saveData();" class="h-10 border-2 rounded-lg cursor-pointer">
+                    </div>
+                    <div class="flex flex-col">
+                        <label for="cardColorLightPicker" class="text-sm font-medium mb-1">Kartenfarbe</label>
+                        <input type="color" id="cardColorLightPicker" oninput="updateColorVariables(); saveData();" class="h-10 border-2 rounded-lg cursor-pointer">
+                    </div>
+                </div>
+
+                <div class="flex justify-end mb-8">
+                    <button onclick="resetColorSettings()" class="reset-button text-sm">
+                        Farb-Einstellungen zurücksetzen
+                    </button>
+                </div>
+
+                <!-- FRAGEN-EDITOR -->
+                <h3 class="text-xl font-semibold mb-3">Fragenkatalog-Daten</h3>
+                <p class="mb-4 text-sm opacity-80">
+                    Trage deine Fragen im Format <strong>[Kategorie: Beschreibung]</strong> gefolgt von den Fragen (jeweils eine Zeile) ein.
+                </p>
+                
+                <textarea id="questionInput" class="input-field mb-6 focus:ring-2 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-900 focus:ring-primary"></textarea>
+                
+                <button onclick="loadAndUpdateData()" class="action-button w-full sm:w-auto">
+                    Daten speichern & Zurück zum Spiel
+                </button>
+
+            </div>
+        </div>
+
+    </div>
+</body>
+</html>
