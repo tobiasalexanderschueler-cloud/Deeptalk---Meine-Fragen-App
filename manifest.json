@@ -4,7 +4,7 @@
   "description": "Ein flexibler Fragenkatalog zur Anregung tiefer Gespräche.",
   
   /* WICHTIG: Ersetzen Sie HIER 'MEIN-REPO-NAME' durch den genauen Namen Ihres GitHub-Repositorys! */
-  "start_url": "/MEIN-REPO-NAME/index.html", 
+  "start_url": "/Deeptalk---Meine-Fragen-App/index.html", 
   
   "display": "standalone",
   "background_color": "#000000",
