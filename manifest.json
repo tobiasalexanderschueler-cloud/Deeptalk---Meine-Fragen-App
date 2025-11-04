@@ -1,0 +1,21 @@
+{
+"name": "Fragen App",
+"short_name": "Fragen App",
+"description": "Ihr interaktiver Fragenkatalog für Deep Talk.",
+"start_url": "./index.html",
+"display": "standalone",
+"background_color": "#ffffff",
+"theme_color": "#ff5722",
+"icons": [
+{
+"src": "https://www.google.com/search?q=https://placehold.co/192x192/ff5722/ffffff%3Ftext%3DQ",
+"sizes": "192x192",
+"type": "image/png"
+},
+{
+"src": "https://www.google.com/search?q=https://placehold.co/512x512/ff5722/ffffff%3Ftext%3DQ",
+"sizes": "512x512",
+"type": "image/png"
+}
+]
+}
