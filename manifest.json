@@ -3,7 +3,6 @@
   "short_name": "Deeptalk",
   "description": "Ein flexibler Fragenkatalog zur Anregung tiefer Gespräche.",
   
-  /* WICHTIG: Ersetzen Sie HIER 'MEIN-REPO-NAME' durch den genauen Namen Ihres GitHub-Repositorys! */
   "start_url": "/Deeptalk---Meine-Fragen-App/index.html", 
   
   "display": "standalone",
