@@ -1,10 +1,13 @@
 {
-  "name": "Interaktiver Fragenkatalog",
-  "short_name": "Fragen-App",
-  "description": "Ein flexibler Fragenkatalog mit Dark Mode und Farbanpassung zur Anregung von Gesprächen.",
-  "start_url": "/index.html",
+  "name": "Deep Talk",
+  "short_name": "Deeptalk",
+  "description": "Ein flexibler Fragenkatalog zur Anregung tiefer Gespräche.",
+  
+  /* WICHTIG: Ersetzen Sie HIER 'MEIN-REPO-NAME' durch den genauen Namen Ihres GitHub-Repositorys! */
+  "start_url": "/MEIN-REPO-NAME/index.html", 
+  
   "display": "standalone",
-  "background_color": "#111827",
+  "background_color": "#000000",
   "theme_color": "#000000",
   "orientation": "portrait",
   "icons": [
